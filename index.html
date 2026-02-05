@@ -284,4 +284,1010 @@
       </div>
 
       <div class="calc-row"><label>账户总额:</label><input type="number" id="account-balance" placeholder="100000" /></div>
-      <div class="calc-row"><label>单笔风险比例 (%):</label><input type="number" id="ris
+      <div class="calc-row"><label>单笔风险比例 (%):</label><input type="number" id="risk-percent" value="1" min="0" step="0.01" /></div>
+      <div class="calc-row"><label>杠杆:</label><input type="number" id="leverage" value="1" min="1" step="1" /></div>
+      <div class="calc-row"><label>合约乘数 (点值):</label><input type="number" id="contract-multiplier" value="1" min="0" step="0.0001" /></div>
+      <div class="calc-row"><label>最小下单单位:</label><input type="number" id="min-qty" value="0" min="0" step="0.0001" placeholder="0 表示忽略" /></div>
+      <div class="calc-row"><label>进场价格:</label><input type="number" id="entry-price" placeholder="10.00" step="0.0001" /></div>
+      <div class="calc-row"><label>止损价格:</label><input type="number" id="stop-loss-price" placeholder="9.90" step="0.0001" /></div>
+
+      <div class="result">
+        <h4>建议仓位</h4>
+        <div id="suggested-position" class="big">--</div>
+        <div class="result-details">
+          <div><small>最大亏损</small><div id="max-loss-display" class="big" style="font-size:18px;">--</div></div>
+          <div><small>名义价值</small><div id="notional-value-display" class="big" style="font-size:18px;">--</div></div>
+          <div><small>所需保证金</small><div id="margin-required-display" class="big" style="font-size:18px;">--</div></div>
+        </div>
+        <div id="calc-note" class="banner">提示：建议仓位已包含合约乘数、最小下单单位（若填写）。手续费/滑点将在平仓时计入 PnL。</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 18px;">
+      <label for="trade-logic-select">1. 我能一句话说清楚进场逻辑:</label>
+      <select id="trade-logic-select">
+        <option value="">-- 选择逻辑 --</option>
+        <option value="突破回踩确认">突破回踩确认</option>
+        <option value="趋势线支撑/反弹">趋势线支撑/反弹</option>
+        <option value="箱体边界反转">箱体边界反转</option>
+        <option value="均线交叉系统">均线交叉系统</option>
+        <option value="斐波那契回撤位">斐波那契回撤位</option>
+        <option value="custom">其他 (手动输入)</option>
+      </select>
+      <input type="text" id="trade-logic-custom" class="custom-input" placeholder="输入自定义逻辑" />
+    </div>
+
+    <div class="form-group">
+      <label for="trade-pattern-select">2. 这是我系统里的标准形态:</label>
+      <select id="trade-pattern-select">
+        <option value="">-- 选择形态 --</option>
+        <option value="头肩顶/底">头肩顶/底</option>
+        <option value="W/M形态 (双顶/底)">W/M形态 (双顶/底)</option>
+        <option value="收敛/发散三角形">收敛/发散三角形</option>
+        <option value="旗形/尖旗形">旗形/尖旗形</option>
+        <option value="矩形/箱体">矩形/箱体</option>
+        <option value="custom">其他 (手动输入)</option>
+      </select>
+      <input type="text" id="trade-pattern-custom" class="custom-input" placeholder="输入自定义形态" />
+    </div>
+
+    <div class="form-group checkbox-group"><label><input type="checkbox" id="check-loss" /> 3. 亏损金额已通过计算器确认</label></div>
+    <div class="form-group checkbox-group"><label><input type="checkbox" id="check-regret" /> 4. 不下这单，我不会后悔</label></div>
+    <div class="form-group checkbox-group"><label><input type="checkbox" id="check-no-ban" /> 5. 未触发禁区（若触发请取消此单）</label></div>
+
+    <div id="trade-warning" class="banner"></div>
+
+    <button id="confirm-trade-btn" disabled>确认下单</button>
+    <button id="cancel-trade-btn" class="ghost-btn" style="margin-left:10px;">取消</button>
+  </dialog>
+
+  <!-- 平仓/复盘 Modal -->
+  <dialog id="review-modal">
+    <h3>平仓 & 复盘</h3>
+
+    <div class="kv" style="margin-bottom: 10px;">
+      <div class="muted">交易：</div>
+      <div><span id="review-title"></span></div>
+      <div class="muted">进场逻辑：</div>
+      <div><span id="review-logic"></span></div>
+    </div>
+
+    <div class="row">
+      <div class="col form-group">
+        <label for="exit-price">平仓价格（必填）</label>
+        <input type="number" id="exit-price" step="0.0001" placeholder="例如：10.50" />
+      </div>
+      <div class="col form-group">
+        <label for="extra-fees">额外费用（可选，金额）</label>
+        <input type="number" id="extra-fees" step="0.01" value="0" />
+      </div>
+    </div>
+
+    <div id="pnl-preview" class="banner" style="display:block;"></div>
+
+    <div class="form-group">
+      <label>1. 是否按计划执行？</label>
+      <div>
+        <input type="radio" name="execution" value="是" checked /> 是
+        <input type="radio" name="execution" value="否 (违规)" style="margin-left:10px;" /> 否 (违规)
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>2. 错在逻辑还是执行？</label>
+      <div>
+        <input type="radio" name="error-type" value="逻辑" checked /> 逻辑
+        <input type="radio" name="error-type" value="执行" style="margin-left:10px;" /> 执行
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="improvement-point">3. 下一次的唯一改进点:</label>
+      <input type="text" id="improvement-point" placeholder="e.g., 严格等待K线收盘再做决定" />
+    </div>
+
+    <button id="save-review-btn">保存复盘</button>
+    <button id="cancel-review-btn" class="ghost-btn" style="margin-left:10px;">取消</button>
+  </dialog>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ----------------------
+      // Utils
+      // ----------------------
+      function getLocalDateString(d = new Date()) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function safeText(v) {
+        if (v === null || v === undefined) return '';
+        return String(v);
+      }
+
+      function formatMsToMMSS(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const m = String(Math.floor(total / 60)).padStart(2, '0');
+        const s = String(total % 60).padStart(2, '0');
+        return `${m}:${s}`;
+      }
+
+      function roundDownToStep(value, step) {
+        if (!step || step <= 0) return value;
+        const factor = 1 / step;
+        return Math.floor(value * factor) / factor;
+      }
+
+      // ----------------------
+      // State (stored in localStorage)
+      // ----------------------
+      const STORAGE_KEY = 'tradingAppState_v2_2';
+
+      const state = {
+        today: getLocalDateString(),
+        plan: null,
+        accountBalance: 100000,
+        trades: [],
+        currentReviewingTradeId: null,
+        daily: {
+          realizedPnl: 0,
+          consecutiveLosses: 0,
+          winStreak: 0,
+          halted: false,
+          haltReason: '',
+          forcedHalt: false,
+          forcedHaltReason: '',
+          cooldownUntil: 0
+        },
+        readiness: {
+          sleepHours: null,
+          drank: false,
+          mood: '稳定',
+          checkedAt: 0
+        }
+      };
+
+      const el = {
+        planModal: document.getElementById('plan-modal'),
+        tradeModal: document.getElementById('trade-modal'),
+        reviewModal: document.getElementById('review-modal'),
+        readinessModal: document.getElementById('readiness-modal'),
+        newTradeBtn: document.getElementById('new-trade-btn'),
+        editPlanBtn: document.getElementById('edit-plan-btn'),
+        exportBtn: document.getElementById('export-btn'),
+        planDisplay: document.getElementById('daily-plan-display'),
+        ongoingTrades: document.getElementById('ongoing-trades'),
+        completedTrades: document.getElementById('completed-trades'),
+        riskBanner: document.getElementById('risk-banner'),
+
+        plan: {
+          env: document.getElementById('market-env'),
+          avoid: document.getElementById('avoid-case'),
+          maxTrades: document.getElementById('max-trades'),
+          dailyMaxLoss: document.getElementById('daily-max-loss'),
+          maxConsecLosses: document.getElementById('max-consecutive-losses'),
+          feeRate: document.getElementById('fee-rate'),
+          slippage: document.getElementById('slippage'),
+          lockBtn: document.getElementById('lock-plan-btn'),
+          restBtn: document.getElementById('rest-today-btn'),
+        },
+
+        calc: {
+          symbol: document.getElementById('symbol'),
+          side: document.getElementById('side'),
+          balance: document.getElementById('account-balance'),
+          risk: document.getElementById('risk-percent'),
+          leverage: document.getElementById('leverage'),
+          multiplier: document.getElementById('contract-multiplier'),
+          minQty: document.getElementById('min-qty'),
+          entry: document.getElementById('entry-price'),
+          stop: document.getElementById('stop-loss-price'),
+          pos: document.getElementById('suggested-position'),
+          loss: document.getElementById('max-loss-display'),
+          notional: document.getElementById('notional-value-display'),
+          margin: document.getElementById('margin-required-display'),
+          note: document.getElementById('calc-note'),
+        },
+
+        form: {
+          logicSelect: document.getElementById('trade-logic-select'),
+          logicCustom: document.getElementById('trade-logic-custom'),
+          patternSelect: document.getElementById('trade-pattern-select'),
+          patternCustom: document.getElementById('trade-pattern-custom'),
+          checkLoss: document.getElementById('check-loss'),
+          checkRegret: document.getElementById('check-regret'),
+          checkNoBan: document.getElementById('check-no-ban'),
+          confirmBtn: document.getElementById('confirm-trade-btn'),
+          cancelBtn: document.getElementById('cancel-trade-btn'),
+          warning: document.getElementById('trade-warning'),
+        },
+
+        readiness: {
+          sleepHours: document.getElementById('sleep-hours'),
+          drank: document.getElementById('drank-alcohol'),
+          mood: document.getElementById('mood'),
+          warning: document.getElementById('readiness-warning'),
+          confirmBtn: document.getElementById('readiness-confirm-btn'),
+          cancelBtn: document.getElementById('readiness-cancel-btn'),
+        },
+
+        review: {
+          title: document.getElementById('review-title'),
+          logic: document.getElementById('review-logic'),
+          exit: document.getElementById('exit-price'),
+          extraFees: document.getElementById('extra-fees'),
+          pnlPreview: document.getElementById('pnl-preview'),
+          improvement: document.getElementById('improvement-point'),
+          saveBtn: document.getElementById('save-review-btn'),
+          cancelBtn: document.getElementById('cancel-review-btn')
+        }
+      };
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function loadState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+        try {
+          const parsed = JSON.parse(saved);
+          // Cross-day reset (keep balance + optional plan)
+          if (parsed.today === state.today) {
+            Object.assign(state, parsed);
+          } else {
+            state.accountBalance = Number(parsed.accountBalance) || state.accountBalance;
+            // plan optionally carries over, but you likely want to re-lock daily; here we reset plan
+            state.plan = null;
+            state.trades = [];
+            state.daily = { realizedPnl: 0, consecutiveLosses: 0, winStreak: 0, halted: false, haltReason: '', forcedHalt: false, forcedHaltReason: '', cooldownUntil: 0 };
+            state.readiness = { sleepHours: null, drank: false, mood: '稳定', checkedAt: 0 };
+            saveState();
+          }
+        } catch (e) {
+          console.warn('Failed to parse saved state:', e);
+        }
+      }
+
+      // ----------------------
+      // Risk engine
+      // ----------------------
+      function recomputeDailyStats() {
+        let realized = 0;
+        let consecutiveLosses = 0;
+        let winStreak = 0;
+
+        const closed = state.trades
+          .filter(t => t.status === 'closed')
+          .slice()
+          .sort((a,b) => (a.closedAt||0) - (b.closedAt||0));
+
+        realized = closed.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+
+        // consecutive losses from latest closed trades backward
+        for (let i = closed.length - 1; i >= 0; i--) {
+          const pnl = Number(closed[i].pnl) || 0;
+          if (pnl < 0) consecutiveLosses++;
+          else break;
+        }
+
+        // win streak from latest closed trades backward
+        for (let i = closed.length - 1; i >= 0; i--) {
+          const pnl = Number(closed[i].pnl) || 0;
+          if (pnl > 0) winStreak++;
+          else break;
+        }
+
+        state.daily.realizedPnl = realized;
+        state.daily.consecutiveLosses = consecutiveLosses;
+        state.daily.winStreak = winStreak;
+
+        const now = Date.now();
+        const inCooldown = (Number(state.daily.cooldownUntil || 0) > now);
+
+        // Forced halt (e.g. sleep/alcohol gate)
+        let halted = Boolean(state.daily.forcedHalt);
+        let reason = state.daily.forcedHalt ? (state.daily.forcedHaltReason || '强制休战') : '';
+
+        // Plan-based risk halts
+        if (!halted && state.plan) {
+          const maxLoss = Number(state.plan.dailyMaxLoss) || 0;
+          const maxConsec = Number(state.plan.maxConsecutiveLosses) || 0;
+
+          if (maxLoss > 0 && realized <= -Math.abs(maxLoss)) {
+            halted = true;
+            reason = `触发当日最大亏损：已实现 PnL ${realized.toFixed(2)} ≤ -${Math.abs(maxLoss).toFixed(2)}`;
+          }
+
+          if (!halted && maxConsec > 0 && consecutiveLosses >= maxConsec) {
+            halted = true;
+            reason = `触发连续亏损限制：连续亏损 ${consecutiveLosses} 笔 ≥ ${maxConsec} 笔`;
+          }
+        }
+
+        state.daily.halted = halted;
+        state.daily.haltReason = reason;
+        state.daily.inCooldown = inCooldown;
+      }
+
+      function directionAllowed(side) {
+        if (!state.plan) return true;
+        if (state.plan.direction === '只做多') return side === 'LONG';
+        if (state.plan.direction === '只做空') return side === 'SHORT';
+        return true;
+      }
+
+      // ----------------------
+      // Rendering (no innerHTML injection for user input)
+      // ----------------------
+      function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+      function makeP(text, className) {
+        const p = document.createElement('p');
+        if (className) p.className = className;
+        p.textContent = text;
+        return p;
+      }
+
+      function renderPlan() {
+        clearNode(el.planDisplay);
+        if (!state.plan) return;
+
+        const items = [
+          `日期: ${state.today}`,
+          `环境: ${state.plan.env}`,
+          `方向: ${state.plan.direction}`,
+          `禁止: ${state.plan.avoid || '无'}`,
+          `额度: ${state.trades.filter(t => t.status === 'open').length + state.trades.filter(t => t.status === 'closed').length} / ${state.plan.maxTrades}`,
+          `已实现PnL: ${Number(state.daily.realizedPnl || 0).toFixed(2)}`,
+          `连胜: ${Number(state.daily.winStreak || 0)}`,
+          `状态: ${(state.readiness && state.readiness.checkedAt) ? (state.readiness.mood + (state.readiness.sleepHours !== null ? (' | 睡眠 ' + state.readiness.sleepHours + 'h') : '')) : '未检查'}`,
+        ];
+
+        items.forEach(t => {
+          const s = document.createElement('span');
+          s.textContent = t;
+          el.planDisplay.appendChild(s);
+        });
+
+        // Risk banner
+        const now = Date.now();
+        const cdUntil = Number(state.daily.cooldownUntil || 0);
+        const inCooldown = cdUntil > now;
+
+        if (state.daily.halted) {
+          el.riskBanner.style.display = 'block';
+          el.riskBanner.textContent = `休战中：${state.daily.haltReason}`;
+        } else if (inCooldown) {
+          el.riskBanner.style.display = 'block';
+          el.riskBanner.textContent = `冷却中：亏损后等待 ${formatMsToMMSS(cdUntil - now)} 再开新单`;
+        } else if (Number(state.daily.winStreak || 0) >= 5) {
+          el.riskBanner.style.display = 'block';
+          el.riskBanner.textContent = `连胜保护：已连胜 ${state.daily.winStreak} 单，建议把单笔风险降到 0.5%`;
+        } else {
+          el.riskBanner.style.display = 'none';
+          el.riskBanner.textContent = '';
+        }
+      }
+
+      function renderTrades() {
+        clearNode(el.ongoingTrades);
+        clearNode(el.completedTrades);
+
+        state.trades.forEach(t => {
+          const card = document.createElement('div');
+          card.className = 'trade-card' + (t.status === 'closed' ? ' completed' : '');
+          if (t.review && t.review.executed && String(t.review.executed).includes('违规')) {
+            card.classList.add('violation');
+          }
+
+          const header = document.createElement('p');
+          const title = document.createElement('strong');
+          title.textContent = `${safeText(t.symbol || 'UNKNOWN')}  ${t.side === 'SHORT' ? '做空' : '做多'}`;
+          header.appendChild(title);
+          header.appendChild(document.createTextNode(`  |  Qty: ${Number(t.qty).toString()}  |  Entry: ${Number(t.entryPrice).toString()}  |  SL: ${Number(t.stopLoss).toString()}`));
+          card.appendChild(header);
+
+          card.appendChild(makeP(`逻辑：${safeText(t.logic)}`, 'muted'));
+          card.appendChild(makeP(`形态：${safeText(t.pattern)}`, 'muted'));
+
+          card.appendChild(makeP(`风险：最大亏损≈ ${Number(t.maxLoss||0).toFixed(2)}  |  名义≈ ${Number(t.notional||0).toFixed(2)}  |  保证金≈ ${Number(t.margin||0).toFixed(2)}`, 'muted'));
+
+          if (t.status === 'open') {
+            const btn = document.createElement('button');
+            btn.textContent = '平仓';
+            btn.className = 'close-trade-btn';
+            btn.dataset.id = t.id;
+            card.appendChild(btn);
+            el.ongoingTrades.appendChild(card);
+          } else {
+            const notes = document.createElement('div');
+            notes.className = 'review-notes';
+            const p1 = document.createElement('p');
+            p1.textContent = '复盘笔记:';
+            notes.appendChild(p1);
+
+            const pnlLine = document.createElement('div');
+            pnlLine.className = 'muted';
+            const pnl = Number(t.pnl || 0);
+            const r = Number(t.rMultiple || 0);
+            pnlLine.textContent = `Exit: ${Number(t.exitPrice||0).toString()} | PnL: ${pnl.toFixed(2)} | R: ${r.toFixed(2)} | Fees: ${(Number(t.fees||0)+Number(t.extraFees||0)).toFixed(2)}`;
+            notes.appendChild(pnlLine);
+
+            const exec = (t.review && t.review.executed) ? t.review.executed : '未填';
+            const err = (t.review && t.review.errorType) ? t.review.errorType : '未填';
+            const imp = (t.review && t.review.improvement) ? t.review.improvement : '';
+
+            const line2 = document.createElement('div');
+            line2.className = 'muted';
+            line2.textContent = `计划执行: ${exec} | 错误类型: ${err}`;
+            notes.appendChild(line2);
+
+            if (imp) {
+              const line3 = document.createElement('div');
+              line3.className = 'muted';
+              line3.textContent = `改进点: ${imp}`;
+              notes.appendChild(line3);
+            }
+
+            card.appendChild(notes);
+            el.completedTrades.appendChild(card);
+          }
+        });
+      }
+
+      function renderControls() {
+        const used = state.trades.length;
+        const max = state.plan ? Number(state.plan.maxTrades || 0) : 0;
+
+        const quotaReached = state.plan && used >= max;
+
+        const now = Date.now();
+        const cdUntil = Number(state.daily.cooldownUntil || 0);
+        const inCooldown = cdUntil > now;
+
+        const blocked = !state.plan || state.daily.halted || inCooldown || quotaReached || max === 0;
+
+        el.newTradeBtn.disabled = blocked;
+
+        if (!state.plan) el.newTradeBtn.textContent = '请先锁定每日计划';
+        else if (state.daily.halted) el.newTradeBtn.textContent = '休战中（风控触发）';
+        else if (inCooldown) el.newTradeBtn.textContent = `冷却中 ${formatMsToMMSS(cdUntil - now)}`;
+        else if (max === 0) el.newTradeBtn.textContent = '今日休战';
+        else if (quotaReached) el.newTradeBtn.textContent = '今日额度已用完';
+        else el.newTradeBtn.textContent = '➕ 发起新交易';
+      }
+
+      function renderAll() {
+        recomputeDailyStats();
+        renderPlan();
+        renderTrades();
+        renderControls();
+      }
+
+      // ----------------------
+      // Position calculator
+      // ----------------------
+      function computePosition() {
+        const balance = Number(el.calc.balance.value);
+        const riskPercent = Number(el.calc.risk.value) / 100;
+        const leverage = Number(el.calc.leverage.value) || 1;
+        const multiplier = Number(el.calc.multiplier.value) || 1;
+        const minQty = Number(el.calc.minQty.value) || 0;
+        const entry = Number(el.calc.entry.value);
+        const stop = Number(el.calc.stop.value);
+
+        if (!(balance > 0 && riskPercent > 0 && entry > 0 && stop > 0 && entry !== stop && multiplier > 0)) {
+          return null;
+        }
+
+        const maxLoss = balance * riskPercent;
+        const perQtyLoss = Math.abs(entry - stop) * multiplier;
+        if (perQtyLoss <= 0) return null;
+
+        let qty = maxLoss / perQtyLoss;
+        if (minQty > 0) {
+          qty = roundDownToStep(qty, minQty);
+        } else {
+          qty = Math.floor(qty * 1000000) / 1000000;
+        }
+
+        const notional = qty * entry * multiplier;
+        const margin = leverage > 0 ? (notional / leverage) : notional;
+
+        return { qty, maxLoss, notional, margin, multiplier, leverage, entry, stop };
+      }
+
+      function updatePositionCalculator() {
+        const r = computePosition();
+        if (!r) {
+          el.calc.pos.textContent = '--';
+          el.calc.loss.textContent = '--';
+          el.calc.notional.textContent = '--';
+          el.calc.margin.textContent = '--';
+          el.form.checkLoss.disabled = true;
+          el.form.checkLoss.checked = false;
+          el.calc.note.style.display = 'none';
+          validateTradeForm();
+          return;
+        }
+
+        el.calc.pos.textContent = String(r.qty);
+        el.calc.loss.textContent = r.maxLoss.toFixed(2);
+        el.calc.notional.textContent = r.notional.toFixed(2);
+        el.calc.margin.textContent = r.margin.toFixed(2);
+        el.form.checkLoss.disabled = false;
+        el.calc.note.style.display = 'block';
+
+        validateTradeForm();
+      }
+
+      function getLogicValue() {
+        return el.form.logicSelect.value === 'custom' ? el.form.logicCustom.value.trim() : el.form.logicSelect.value;
+      }
+
+      function getPatternValue() {
+        return el.form.patternSelect.value === 'custom' ? el.form.patternCustom.value.trim() : el.form.patternSelect.value;
+      }
+
+      function validateTradeForm() {
+        const logicOk = getLogicValue() !== '';
+        const patternOk = getPatternValue() !== '';
+        const calcOk = el.calc.pos.textContent !== '--';
+
+        const side = el.calc.side.value;
+        const sideOk = directionAllowed(side);
+
+        if (!sideOk) {
+          el.form.warning.style.display = 'block';
+          el.form.warning.textContent = `今日计划方向是「${state.plan.direction}」，当前选择是「${side === 'LONG' ? '做多' : '做空'}」，请调整。`;
+        } else {
+          el.form.warning.style.display = 'none';
+          el.form.warning.textContent = '';
+        }
+
+        const ok = logicOk && patternOk && calcOk && sideOk && el.form.checkLoss.checked && el.form.checkRegret.checked && el.form.checkNoBan.checked;
+        el.form.confirmBtn.disabled = !ok;
+      }
+
+      function handleCustomInput(selectEl, customInputEl) {
+        customInputEl.style.display = selectEl.value === 'custom' ? 'block' : 'none';
+        validateTradeForm();
+      }
+
+      // ----------------------
+      // Trade form reset
+      // ----------------------
+      function resetTradeForm() {
+        el.calc.symbol.value = '';
+        el.calc.side.value = 'LONG';
+        el.calc.balance.value = String(state.accountBalance || 0);
+        el.calc.risk.value = (Number(state.daily.winStreak || 0) >= 5) ? '0.5' : '1';
+        el.calc.leverage.value = '1';
+        el.calc.multiplier.value = '1';
+        el.calc.minQty.value = '0';
+        el.calc.entry.value = '';
+        el.calc.stop.value = '';
+
+        el.form.logicSelect.value = '';
+        el.form.logicCustom.value = '';
+        el.form.logicCustom.style.display = 'none';
+        el.form.patternSelect.value = '';
+        el.form.patternCustom.value = '';
+        el.form.patternCustom.style.display = 'none';
+
+        el.form.checkLoss.checked = false;
+        el.form.checkRegret.checked = false;
+        el.form.checkNoBan.checked = false;
+        el.form.warning.style.display = 'none';
+        el.form.warning.textContent = '';
+
+        updatePositionCalculator();
+        validateTradeForm();
+      }
+
+      // ----------------------
+      // PnL calculation
+      // ----------------------
+      function estimateFees(notional) {
+        if (!state.plan) return 0;
+        const feeRate = Number(state.plan.feeRate || 0) / 100;
+        if (!(feeRate > 0)) return 0;
+        return Math.abs(notional) * feeRate * 2;
+      }
+
+      function previewPnl(trade, exitPriceInput) {
+        if (!trade) return { ok: false, message: '未找到交易' };
+        const exitPrice = Number(exitPriceInput);
+        if (!(exitPrice > 0)) return { ok: false, message: '请输入平仓价格' };
+
+        const slippage = state.plan ? Number(state.plan.slippage || 0) : 0;
+        const exitAdj = trade.side === 'LONG' ? (exitPrice - slippage) : (exitPrice + slippage);
+
+        const dir = trade.side === 'LONG' ? 1 : -1;
+        const gross = dir * (exitAdj - trade.entryPrice) * trade.qty * trade.multiplier;
+
+        const notionalEntry = trade.qty * trade.entryPrice * trade.multiplier;
+        const notionalExit = trade.qty * exitAdj * trade.multiplier;
+        const avgNotional = (Math.abs(notionalEntry) + Math.abs(notionalExit)) / 2;
+
+        const fees = estimateFees(avgNotional);
+        const extraFees = Number(el.review.extraFees.value || 0);
+        const net = gross - fees - extraFees;
+
+        const riskPerTrade = Math.abs(trade.entryPrice - trade.stopLoss) * trade.qty * trade.multiplier;
+        const rMultiple = riskPerTrade > 0 ? (net / riskPerTrade) : 0;
+
+        return {
+          ok: true,
+          exitAdj,
+          gross,
+          fees,
+          extraFees,
+          net,
+          riskPerTrade,
+          rMultiple
+        };
+      }
+
+      function updatePnlPreview() {
+        const trade = state.trades.find(t => t.id === state.currentReviewingTradeId);
+        const res = previewPnl(trade, el.review.exit.value);
+        if (!res.ok) {
+          el.review.pnlPreview.textContent = res.message;
+          return;
+        }
+        el.review.pnlPreview.textContent = `PnL 预估（含滑点/手续费）: 净额 ${res.net.toFixed(2)}  |  毛利润 ${res.gross.toFixed(2)}  |  Fees ${res.fees.toFixed(2)}  |  R ${res.rMultiple.toFixed(2)}  |  出场(含滑点) ${res.exitAdj.toFixed(4)}`;
+      }
+
+      // ----------------------
+      // Event handlers
+      // ----------------------
+      el.plan.lockBtn.addEventListener('click', () => {
+        const direction = document.querySelector('input[name="direction"]:checked').value;
+        state.daily.forcedHalt = false;
+        state.daily.forcedHaltReason = '';
+        // 不清空冷却：冷却属于当天状态
+        state.plan = {
+          env: el.plan.env.value,
+          direction,
+          avoid: el.plan.avoid.value.trim() || '无',
+          maxTrades: Math.max(0, Number(el.plan.maxTrades.value || 0)),
+          dailyMaxLoss: Math.max(0, Number(el.plan.dailyMaxLoss.value || 0)),
+          maxConsecutiveLosses: Math.max(0, Number(el.plan.maxConsecLosses.value || 0)),
+          feeRate: Math.max(0, Number(el.plan.feeRate.value || 0)),
+          slippage: Math.max(0, Number(el.plan.slippage.value || 0))
+        };
+        el.planModal.close();
+        saveState();
+        renderAll();
+      });
+
+      el.plan.restBtn.addEventListener('click', () => {
+        state.daily.forcedHalt = false;
+        state.daily.forcedHaltReason = '';
+        state.daily.cooldownUntil = 0;
+        state.plan = {
+          env: '休战',
+          direction: '无',
+          avoid: '所有',
+          maxTrades: 0,
+          dailyMaxLoss: 0,
+          maxConsecutiveLosses: 0,
+          feeRate: 0,
+          slippage: 0
+        };
+        el.planModal.close();
+        saveState();
+        renderAll();
+      });
+
+      el.editPlanBtn.addEventListener('click', () => {
+        if (state.plan) {
+          el.plan.env.value = state.plan.env;
+          el.plan.avoid.value = state.plan.avoid === '无' ? '' : state.plan.avoid;
+          el.plan.maxTrades.value = String(state.plan.maxTrades ?? 0);
+          el.plan.dailyMaxLoss.value = String(state.plan.dailyMaxLoss ?? 0);
+          el.plan.maxConsecLosses.value = String(state.plan.maxConsecutiveLosses ?? 0);
+          el.plan.feeRate.value = String(state.plan.feeRate ?? 0);
+          el.plan.slippage.value = String(state.plan.slippage ?? 0);
+
+          const dir = state.plan.direction;
+          const radio = document.querySelector(`input[name="direction"][value="${dir}"]`);
+          if (radio) radio.checked = true;
+        }
+        el.planModal.showModal();
+      });
+
+      el.exportBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trading_journal_${state.today}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      [el.calc.balance, el.calc.risk, el.calc.leverage, el.calc.multiplier, el.calc.minQty, el.calc.entry, el.calc.stop].forEach(inp => {
+        inp.addEventListener('input', updatePositionCalculator);
+      });
+
+      el.calc.side.addEventListener('change', validateTradeForm);
+      el.calc.symbol.addEventListener('input', validateTradeForm);
+
+      [el.form.logicSelect, el.form.logicCustom, el.form.patternSelect, el.form.patternCustom, el.form.checkLoss, el.form.checkRegret, el.form.checkNoBan].forEach(inp => {
+        inp.addEventListener('input', validateTradeForm);
+        inp.addEventListener('change', validateTradeForm);
+      });
+
+      el.form.logicSelect.addEventListener('change', () => handleCustomInput(el.form.logicSelect, el.form.logicCustom));
+      el.form.patternSelect.addEventListener('change', () => handleCustomInput(el.form.patternSelect, el.form.patternCustom));
+
+      function openTradeModal() {
+        resetTradeForm();
+
+        if (state.plan.direction === '只做多') el.calc.side.value = 'LONG';
+        if (state.plan.direction === '只做空') el.calc.side.value = 'SHORT';
+
+        validateTradeForm();
+        el.tradeModal.showModal();
+      }
+
+      function prefillReadiness() {
+        if (state.readiness && state.readiness.sleepHours !== null) {
+          el.readiness.sleepHours.value = String(state.readiness.sleepHours);
+        } else {
+          el.readiness.sleepHours.value = '';
+        }
+        el.readiness.drank.value = (state.readiness && state.readiness.drank) ? 'yes' : 'no';
+        el.readiness.mood.value = (state.readiness && state.readiness.mood) ? state.readiness.mood : '稳定';
+        el.readiness.warning.style.display = 'none';
+        el.readiness.warning.textContent = '';
+      }
+
+      function applyReadinessGate({ sleepHours, drank, mood }) {
+        if (sleepHours !== null && sleepHours < 6) {
+          state.daily.forcedHalt = true;
+          state.daily.forcedHaltReason = `状态过滤：睡眠不足（${sleepHours}h < 6h），今日禁止交易`;
+          saveState();
+          renderAll();
+          alert('睡眠不足（<6小时），今天不交易。');
+          return false;
+        }
+        if (drank) {
+          state.daily.forcedHalt = true;
+          state.daily.forcedHaltReason = '状态过滤：今日饮酒，今日禁止交易';
+          saveState();
+          renderAll();
+          alert('今日饮酒，今天不交易。');
+          return false;
+        }
+
+        if (mood === '想翻本' || mood === '亢奋') {
+          const ok = confirm(`你当前状态为「${mood}」。这通常会导致情绪交易与加仓冲动。\n\n仍然继续开新单吗？`);
+          if (!ok) return false;
+        }
+
+        return true;
+      }
+
+      el.newTradeBtn.addEventListener('click', () => {
+        if (!state.plan) {
+          el.planModal.showModal();
+          return;
+        }
+
+        recomputeDailyStats();
+
+        if (state.daily.halted) {
+          alert('风控已触发：今日休战。');
+          return;
+        }
+
+        const now = Date.now();
+        const cdUntil = Number(state.daily.cooldownUntil || 0);
+        if (cdUntil > now) {
+          alert(`亏损后冷却中：剩余 ${formatMsToMMSS(cdUntil - now)}`);
+          return;
+        }
+
+        prefillReadiness();
+        el.readinessModal.showModal();
+      });
+
+      el.readiness.cancelBtn.addEventListener('click', () => {
+        el.readinessModal.close();
+      });
+
+      el.readiness.confirmBtn.addEventListener('click', () => {
+        const sleepRaw = el.readiness.sleepHours.value;
+        const sleep = sleepRaw === '' ? null : Number(sleepRaw);
+        const drank = el.readiness.drank.value === 'yes';
+        const mood = el.readiness.mood.value;
+
+        if (sleep !== null && !(sleep >= 0 && sleep <= 24)) {
+          el.readiness.warning.style.display = 'block';
+          el.readiness.warning.textContent = '请填写合理的睡眠小时数（0~24）。';
+          return;
+        }
+
+        state.readiness = {
+          sleepHours: sleep,
+          drank,
+          mood,
+          checkedAt: Date.now()
+        };
+
+        state.daily.forcedHalt = false;
+        state.daily.forcedHaltReason = '';
+
+        const ok = applyReadinessGate({ sleepHours: sleep, drank, mood });
+        if (!ok) {
+          el.readinessModal.close();
+          return;
+        }
+
+        el.readinessModal.close();
+        saveState();
+        renderAll();
+        openTradeModal();
+      });
+
+      el.form.cancelBtn.addEventListener('click', () => {
+        el.tradeModal.close();
+      });
+
+      el.form.confirmBtn.addEventListener('click', () => {
+        const r = computePosition();
+        if (!r) {
+          alert('请先完成仓位计算器输入。');
+          return;
+        }
+
+        const symbol = el.calc.symbol.value.trim();
+        if (!symbol) {
+          alert('请填写品种 Symbol（例如 BTCUSDT）。');
+          return;
+        }
+
+        const side = el.calc.side.value;
+        if (!directionAllowed(side)) {
+          alert('当前方向不符合今日计划。');
+          return;
+        }
+
+        const newTrade = {
+          id: 'trade_' + Date.now(),
+          status: 'open',
+          openedAt: Date.now(),
+          symbol,
+          side,
+          logic: getLogicValue(),
+          pattern: getPatternValue(),
+          qty: Number(r.qty),
+          entryPrice: Number(r.entry),
+          stopLoss: Number(r.stop),
+          multiplier: Number(r.multiplier),
+          leverage: Number(r.leverage),
+          maxLoss: Number(r.maxLoss),
+          notional: Number(r.notional),
+          margin: Number(r.margin),
+          review: null,
+          exitPrice: null,
+          pnl: null,
+          rMultiple: null,
+          fees: null,
+          extraFees: 0,
+          closedAt: null
+        };
+
+        state.accountBalance = Number(el.calc.balance.value) || state.accountBalance;
+        state.trades.push(newTrade);
+        el.tradeModal.close();
+        saveState();
+        renderAll();
+      });
+
+      el.ongoingTrades.addEventListener('click', (e) => {
+        const btn = e.target.closest('.close-trade-btn');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        state.currentReviewingTradeId = id;
+        const trade = state.trades.find(t => t.id === id);
+        if (!trade) return;
+
+        el.review.title.textContent = `${trade.symbol} ${trade.side === 'SHORT' ? '做空' : '做多'} | Qty ${trade.qty} | Entry ${trade.entryPrice}`;
+        el.review.logic.textContent = trade.logic;
+        el.review.exit.value = '';
+        el.review.extraFees.value = '0';
+        el.review.improvement.value = '';
+
+        document.querySelector('input[name="execution"][value="是"]').checked = true;
+        document.querySelector('input[name="error-type"][value="逻辑"]').checked = true;
+
+        updatePnlPreview();
+        el.reviewModal.showModal();
+      });
+
+      el.review.exit.addEventListener('input', updatePnlPreview);
+      el.review.extraFees.addEventListener('input', updatePnlPreview);
+
+      el.review.cancelBtn.addEventListener('click', () => {
+        el.reviewModal.close();
+        state.currentReviewingTradeId = null;
+      });
+
+      el.review.saveBtn.addEventListener('click', () => {
+        const trade = state.trades.find(t => t.id === state.currentReviewingTradeId);
+        if (!trade) {
+          alert('未找到交易。');
+          return;
+        }
+
+        const exitPrice = Number(el.review.exit.value);
+        if (!(exitPrice > 0)) {
+          alert('请填写平仓价格。');
+          return;
+        }
+
+        const res = previewPnl(trade, exitPrice);
+        if (!res.ok) {
+          alert(res.message);
+          return;
+        }
+
+        trade.status = 'closed';
+        trade.exitPrice = Number(exitPrice);
+        trade.fees = Number(res.fees);
+        trade.extraFees = Number(res.extraFees);
+        trade.pnl = Number(res.net);
+        trade.rMultiple = Number(res.rMultiple);
+        trade.closedAt = Date.now();
+
+        trade.review = {
+          executed: document.querySelector('input[name="execution"]:checked').value,
+          errorType: document.querySelector('input[name="error-type"]:checked').value,
+          improvement: el.review.improvement.value.trim()
+        };
+
+        // 亏损后冷却 30 分钟（防止情绪加仓/翻本）
+        if (Number(trade.pnl) < 0) {
+          state.daily.cooldownUntil = Date.now() + 30 * 60 * 1000;
+        }
+
+        recomputeDailyStats();
+
+        el.reviewModal.close();
+        state.currentReviewingTradeId = null;
+        saveState();
+        renderAll();
+      });
+
+      // ----------------------
+      // Init
+      // ----------------------
+      loadState();
+      el.calc.balance.value = String(state.accountBalance || 0);
+
+      if (!state.plan) {
+        el.planModal.showModal();
+      }
+
+      // Ticker: update cooldown countdown / banners
+      setInterval(() => {
+        if (!state.plan) return;
+        recomputeDailyStats();
+        renderPlan();
+        renderControls();
+      }, 1000);
+
+      renderAll();
+    });
+  </script>
+</body>
+</html>
