@@ -271,7 +271,19 @@
 
       <div class="row">
         <div class="col">
-          <div class="calc-row"><label>品种 (Symbol):</label><input type="text" id="symbol" placeholder="例如：BTCUSDT" /></div>
+          <div class="calc-row"><label>品种 (Symbol):</label><input type="text" id="symbol" list="symbol-list" placeholder="例如：BTCUSDT" />
+<datalist id="symbol-list">
+  <option value="BTCUSDT"></option>
+  <option value="ETHUSDT"></option>
+  <option value="SOLUSDT"></option>
+  <option value="BNBUSDT"></option>
+  <option value="XAUUSD"></option>
+  <option value="XAGUSD"></option>
+  <option value="USOIL"></option>
+  <option value="NAS100"></option>
+  <option value="SPX500"></option>
+</datalist>
+
         </div>
         <div class="col">
           <div class="calc-row"><label>方向 (Side):</label>
@@ -312,6 +324,16 @@
         <option value="箱体边界反转">箱体边界反转</option>
         <option value="均线交叉系统">均线交叉系统</option>
         <option value="斐波那契回撤位">斐波那契回撤位</option>
+        <option value="支撑/阻力反转确认">支撑/阻力反转确认</option>
+<option value="均线回踩（MA20/MA60）">均线回踩（MA20/MA60）</option>
+<option value="趋势通道回踩">趋势通道回踩</option>
+<option value="突破失败（假突破）">突破失败（假突破）</option>
+<option value="背离（RSI/MACD）">背离（RSI/MACD）</option>
+<option value="布林带收口→放量开口">布林带收口→放量开口</option>
+<option value="VWAP 回归/偏离">VWAP 回归/偏离</option>
+<option value="订单块/供需区">订单块/供需区</option>
+<option value="新闻/事件驱动（有预案）">新闻/事件驱动（有预案）</option>
+
         <option value="custom">其他 (手动输入)</option>
       </select>
       <input type="text" id="trade-logic-custom" class="custom-input" placeholder="输入自定义逻辑" />
@@ -326,6 +348,13 @@
         <option value="收敛/发散三角形">收敛/发散三角形</option>
         <option value="旗形/尖旗形">旗形/尖旗形</option>
         <option value="矩形/箱体">矩形/箱体</option>
+        <option value="上升/下降通道">上升/下降通道</option>
+<option value="楔形（上升/下降楔）">楔形（上升/下降楔）</option>
+<option value="杯柄形态">杯柄形态</option>
+<option value="圆弧顶/圆弧底">圆弧顶/圆弧底</option>
+<option value="缺口回补/跳空">缺口回补/跳空</option>
+<option value="双针探底/双针探顶">双针探底/双针探顶</option>
+
         <option value="custom">其他 (手动输入)</option>
       </select>
       <input type="text" id="trade-pattern-custom" class="custom-input" placeholder="输入自定义形态" />
@@ -383,7 +412,17 @@
 
     <div class="form-group">
       <label for="improvement-point">3. 下一次的唯一改进点:</label>
-      <input type="text" id="improvement-point" placeholder="e.g., 严格等待K线收盘再做决定" />
+     <input type="text" id="improvement-point" list="improve-list" placeholder="e.g., 严格等待K线收盘再做决定" />
+<datalist id="improve-list">
+  <option value="不撤止损，不改规则"></option>
+  <option value="等信号收盘确认再进场"></option>
+  <option value="只做计划方向，不摸顶抄底"></option>
+  <option value="亏损后冷却期不下单"></option>
+  <option value="单笔风险固定（<=1%），不加仓扛单"></option>
+  <option value="进场前先写一句话逻辑+无效条件"></option>
+  <option value="止盈分批：1R 先减仓一半"></option>
+</datalist>
+
     </div>
 
     <button id="save-review-btn">保存复盘</button>
